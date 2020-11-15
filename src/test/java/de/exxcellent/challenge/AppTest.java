@@ -10,6 +10,7 @@ import javax.inject.Named;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -77,6 +78,50 @@ class AppTest {
 	}
 
 	@Test
+	void failsIfNoFilenameGiven() throws Exception {
+
+		int exitCode = sut.run("--weather" /* here the filename is missing */ );
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(App.USAGE_TEXT);
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void failsIfWrongOptionsIsGiven() throws Exception {
+
+		int exitCode = sut.run("--WRONG_OPTION!", "fileame");
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(App.USAGE_TEXT);
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void failsWithToManyArguments() throws Exception {
+
+		int exitCode = sut.run("--weather", "fileame1", "filename2");
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(App.USAGE_TEXT);
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void failsWithErrorMessageIfNoCsvFileFound() throws Exception {
+
+		int exitCode = sut.run("--weather", "NOT_EXISTING.csv");
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(ArgumentMatchers.startsWith("File not found: "));
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
 	void callOnSingleMinimumFileShowsSingleDay() throws Exception {
 
 		int exitCode = sut.run("--weather", absolutePathTo("weather_data_with_single_min_spread.csv"));
@@ -106,10 +151,11 @@ class AppTest {
 
 		assertEquals(App.FAILURE, exitCode);
 		Mockito.verifyNoMoreInteractions(stdout);
-		Mockito.verify(stderr).println("Wrong header found: 'Day,NOT_EXPECTED_HERE!!!,MnT,AvT,AvDP,1HrP TPcpn,PDir,AvSp,Dir,MxS,SkyC,MxR,Mn,R AvSLP' - Expected: 'Day,MxT,MnT,AvT,AvDP,1HrP TPcpn,PDir,AvSp,Dir,MxS,SkyC,MxR,Mn,R AvSLP'");
+		Mockito.verify(stderr).println(
+				"Wrong header found: 'Day,NOT_EXPECTED_HERE!!!,MnT,AvT,AvDP,1HrP TPcpn,PDir,AvSp,Dir,MxS,SkyC,MxR,Mn,R AvSLP' - Expected: 'Day,MxT,MnT,AvT,AvDP,1HrP TPcpn,PDir,AvSp,Dir,MxS,SkyC,MxR,Mn,R AvSLP'");
 		Mockito.verifyNoMoreInteractions(stderr);
 	}
-	
+
 	@Test
 	void warnsOnInvalidValuesInTemperatureColumn() throws Exception {
 
@@ -118,13 +164,13 @@ class AppTest {
 		assertEquals(App.SUCCESS, exitCode);
 		Mockito.verify(stdout).println("1");
 		Mockito.verify(stdout).println("3");
-		Mockito.verify(stderr).println("Warn: Invalid temperature data for day 2'");
+		Mockito.verify(stderr).println("Warn: Invalid temperature data in line 2'");
 		Mockito.verifyNoMoreInteractions(stdout, stderr);
 	}
 
 	// Helper method to get test file from resources folder
 	final String absolutePathTo(String filename) {
-		Path resourceDirectory = Paths.get("src","test","resources");
+		Path resourceDirectory = Paths.get("src", "test", "resources", filename);
 		String absolutePath = resourceDirectory.toFile().getAbsolutePath();
 		return absolutePath;
 	}
