@@ -34,7 +34,10 @@ dependencies {
     implementation 'com.google.guava:guava:29.0-jre'
     
     // For Dependency Injection
-	compile group: 'com.google.inject', name: 'guice', version: '4.2.3'
+	implementation group: 'com.google.inject', name: 'guice', version: '5.0.0-BETA-1'
+	
+	// Apache commons csv for reading csv files
+	implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.8'
     
     // Use JUnit Jupiter API for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.2'
@@ -42,12 +45,14 @@ dependencies {
     // Mockito Mocking Framework
 	testCompile group: 'org.mockito', name: 'mockito-core', version: '3.6.0'
 
-    
     // Guice-testlib neatly integrates Mockito with Guice
 	testCompile group: 'com.google.inject.extensions', name: 'guice-testlib', version: '4.2.3'
     
     // Use JUnit Jupiter Engine for testing.
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.2'
+    
+    // Hamcrest matchers
+    testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.2'
 }
 
 // Use Java 11
