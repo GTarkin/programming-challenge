@@ -34,7 +34,7 @@ public final class App {
 	static final int SUCCESS = 0;
 	static final int FAILURE = 1;
 
-	static final String USAGE_TEXT = "Usage: [--help] | [--weather <path to csv>]";
+	private static final String USAGE_TEXT = "Usage: [--help] | [--weather <path to csv>]";
 
 	private PrintStream stdout;
 	private PrintStream stderr;
