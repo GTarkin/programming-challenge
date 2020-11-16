@@ -27,6 +27,8 @@ import com.google.inject.testing.fieldbinder.BoundFieldModule;
  */
 class AppTest {
 
+	static final String EXPECTED_USAGE = "Usage: [--help] | [--weather <path to csv>] | [--football <path to csv>]";
+
 	App sut;
 
 	@Mock
@@ -38,6 +40,13 @@ class AppTest {
 	@Bind
 	@Named("stderr")
 	PrintStream stderr;
+
+	// Helper method to get test file from resources folder
+	final String absolutePathTo(String filename) {
+		Path resourceDirectory = Paths.get("src", "test", "resources", filename);
+		String absolutePath = resourceDirectory.toFile().getAbsolutePath();
+		return absolutePath;
+	}
 
 	@BeforeEach
 	void setup() {
@@ -52,7 +61,7 @@ class AppTest {
 		int exitCode = sut.run();
 
 		assertEquals(App.FAILURE, exitCode);
-		Mockito.verify(stderr).println(App.USAGE_TEXT);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
 		Mockito.verifyNoInteractions(stdout);
 		Mockito.verifyNoMoreInteractions(stderr);
 	}
@@ -63,7 +72,7 @@ class AppTest {
 		int exitCode = sut.run("--help");
 
 		assertEquals(App.SUCCESS, exitCode);
-		Mockito.verify(stdout).println(App.USAGE_TEXT);
+		Mockito.verify(stdout).println(EXPECTED_USAGE);
 		Mockito.verifyNoMoreInteractions(stdout);
 		Mockito.verifyNoInteractions(stderr);
 	}
@@ -74,18 +83,7 @@ class AppTest {
 		int exitCode = sut.run("I am invalid argument");
 
 		assertEquals(App.FAILURE, exitCode);
-		Mockito.verify(stderr).println(App.USAGE_TEXT);
-	}
-
-	@Test
-	void failsIfNoFilenameGiven() throws Exception {
-
-		int exitCode = sut.run("--weather" /* here the filename is missing */ );
-
-		assertEquals(App.FAILURE, exitCode);
-		Mockito.verify(stderr).println(App.USAGE_TEXT);
-		Mockito.verifyNoInteractions(stdout);
-		Mockito.verifyNoMoreInteractions(stderr);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
 	}
 
 	@Test
@@ -94,24 +92,35 @@ class AppTest {
 		int exitCode = sut.run("--WRONG_OPTION!", "fileame");
 
 		assertEquals(App.FAILURE, exitCode);
-		Mockito.verify(stderr).println(App.USAGE_TEXT);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
 		Mockito.verifyNoInteractions(stdout);
 		Mockito.verifyNoMoreInteractions(stderr);
 	}
 
 	@Test
-	void failsWithToManyArguments() throws Exception {
+	void failsIfNoWeatherFilenameGiven() throws Exception {
+
+		int exitCode = sut.run("--weather" /* here the filename is missing */ );
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void failsWithToManyWeatherFileArguments() throws Exception {
 
 		int exitCode = sut.run("--weather", "fileame1", "filename2");
 
 		assertEquals(App.FAILURE, exitCode);
-		Mockito.verify(stderr).println(App.USAGE_TEXT);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
 		Mockito.verifyNoInteractions(stdout);
 		Mockito.verifyNoMoreInteractions(stderr);
 	}
 
 	@Test
-	void failsWithErrorMessageIfNoCsvFileFound() throws Exception {
+	void failsWithErrorMessageIfNoWeatherCsvFileFound() throws Exception {
 
 		int exitCode = sut.run("--weather", "NOT_EXISTING.csv");
 
@@ -122,7 +131,7 @@ class AppTest {
 	}
 
 	@Test
-	void callOnSingleMinimumFileShowsSingleDay() throws Exception {
+	void callOnWeatherFileWithSingleMinimumShowsSingleDay() throws Exception {
 
 		int exitCode = sut.run("--weather", absolutePathTo("weather_data_with_single_min_spread.csv"));
 
@@ -133,7 +142,7 @@ class AppTest {
 	}
 
 	@Test
-	void callOnMultipleMinimumFileShowsMultipleDays() throws Exception {
+	void callOnWeatherFileWithMultipleMinimaShowsMultipleDays() throws Exception {
 
 		int exitCode = sut.run("--weather", absolutePathTo("weather_data_with_multiple_min_spreads.csv"));
 
@@ -145,7 +154,7 @@ class AppTest {
 	}
 
 	@Test
-	void callOnFileWithWrongHeaderFails() throws Exception {
+	void callOnWeatherFileWithWrongHeaderFails() throws Exception {
 
 		int exitCode = sut.run("--weather", absolutePathTo("weather_data_with_wrong_header.csv"));
 
@@ -157,21 +166,94 @@ class AppTest {
 	}
 
 	@Test
-	void warnsOnInvalidValuesInTemperatureColumn() throws Exception {
+	void warnsOnWeatherFileWithInvalidValuesInColumn() throws Exception {
 
 		int exitCode = sut.run("--weather", absolutePathTo("weather_data_with_invalid_temperatures.csv"));
 
 		assertEquals(App.SUCCESS, exitCode);
 		Mockito.verify(stdout).println("1");
 		Mockito.verify(stdout).println("3");
-		Mockito.verify(stderr).println("Warn: Invalid temperature data in line 2'");
+		Mockito.verify(stderr).println("Warn: Invalid data in line 2'");
 		Mockito.verifyNoMoreInteractions(stdout, stderr);
 	}
 
-	// Helper method to get test file from resources folder
-	final String absolutePathTo(String filename) {
-		Path resourceDirectory = Paths.get("src", "test", "resources", filename);
-		String absolutePath = resourceDirectory.toFile().getAbsolutePath();
-		return absolutePath;
+	@Test
+	void failsIfNoFootballFilenameGiven() throws Exception {
+
+		int exitCode = sut.run("--football" /* here the filename is missing */ );
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void failsWithToManyFootballFileArguments() throws Exception {
+
+		int exitCode = sut.run("--football", "fileame1", "filename2");
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(EXPECTED_USAGE);
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void failsWithErrorMessageIfNoFootballCsvFileFound() throws Exception {
+
+		int exitCode = sut.run("--football", "NOT_EXISTING.csv");
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verify(stderr).println(ArgumentMatchers.startsWith("File not found: "));
+		Mockito.verifyNoInteractions(stdout);
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void callOnFootballFileWithSingleMinimumShowsSingleDay() throws Exception {
+
+		int exitCode = sut.run("--football", absolutePathTo("football_data_with_single_min_spread.csv"));
+
+		assertEquals(App.SUCCESS, exitCode);
+		Mockito.verify(stdout).println("Team 2");
+		Mockito.verifyNoMoreInteractions(stdout);
+		Mockito.verifyNoInteractions(stderr);
+	}
+
+	@Test
+	void callOnFootballFileWithMultipleMinimaShowsMultipleDays() throws Exception {
+
+		int exitCode = sut.run("--football", absolutePathTo("football_data_with_multiple_min_spreads.csv"));
+
+		assertEquals(App.SUCCESS, exitCode);
+		Mockito.verify(stdout).println("Team 2");
+		Mockito.verify(stdout).println("Team 3");
+		Mockito.verifyNoMoreInteractions(stdout);
+		Mockito.verifyNoInteractions(stderr);
+	}
+
+	@Test
+	void callOnFootballFileWithWrongHeaderFails() throws Exception {
+
+		int exitCode = sut.run("--football", absolutePathTo("football_data_with_wrong_header.csv"));
+
+		assertEquals(App.FAILURE, exitCode);
+		Mockito.verifyNoMoreInteractions(stdout);
+		Mockito.verify(stderr).println(
+				"Wrong header found: 'Team,Games,Wins,Losses,Draws,NOT_EXPECTED_HERE!!!,Goals Allowed,Points' - Expected: 'Team,Games,Wins,Losses,Draws,Goals,Goals Allowed,Points'");
+		Mockito.verifyNoMoreInteractions(stderr);
+	}
+
+	@Test
+	void warnsOnFootballFileWithInvalidValuesInColumns() throws Exception {
+
+		int exitCode = sut.run("--football", absolutePathTo("weather_data_with_invalid_temperatures.csv"));
+
+		assertEquals(App.SUCCESS, exitCode);
+		Mockito.verify(stdout).println("Team 2");
+		Mockito.verify(stdout).println("Team 3");
+		Mockito.verify(stderr).println("Warn: Invalid data in line 2'");
+		Mockito.verifyNoMoreInteractions(stdout, stderr);
 	}
 }
