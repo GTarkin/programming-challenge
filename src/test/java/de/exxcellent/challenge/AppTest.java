@@ -213,7 +213,7 @@ class AppTest {
 	@Test
 	void callOnFootballFileWithSingleMinimumShowsSingleDay() throws Exception {
 
-		int exitCode = sut.run("--football", absolutePathTo("football_data_with_single_min_spread.csv"));
+		int exitCode = sut.run("--football", absolutePathTo("football_data_with_single_absolute_min_spread.csv"));
 
 		assertEquals(App.SUCCESS, exitCode);
 		Mockito.verify(stdout).println("Team 2");
@@ -224,7 +224,7 @@ class AppTest {
 	@Test
 	void callOnFootballFileWithMultipleMinimaShowsMultipleDays() throws Exception {
 
-		int exitCode = sut.run("--football", absolutePathTo("football_data_with_multiple_min_spreads.csv"));
+		int exitCode = sut.run("--football", absolutePathTo("football_data_with_multiple_absolute_min_spreads.csv"));
 
 		assertEquals(App.SUCCESS, exitCode);
 		Mockito.verify(stdout).println("Team 2");
@@ -248,12 +248,12 @@ class AppTest {
 	@Test
 	void warnsOnFootballFileWithInvalidValuesInColumns() throws Exception {
 
-		int exitCode = sut.run("--football", absolutePathTo("weather_data_with_invalid_temperatures.csv"));
+		int exitCode = sut.run("--football", absolutePathTo("football_data_with_invalid_goals.csv"));
 
 		assertEquals(App.SUCCESS, exitCode);
 		Mockito.verify(stdout).println("Team 2");
 		Mockito.verify(stdout).println("Team 3");
-		Mockito.verify(stderr).println("Warn: Invalid data in line 2'");
+		Mockito.verify(stderr).println("Warn: Invalid data in line 1'");
 		Mockito.verifyNoMoreInteractions(stdout, stderr);
 	}
 }
