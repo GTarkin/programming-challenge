@@ -34,15 +34,22 @@ public final class App {
 	static final int SUCCESS = 0;
 	static final int FAILURE = 1;
 
-	private static final String USAGE_TEXT = "Usage: [--help] | [--weather <path to csv>]";
+	private static final String USAGE_TEXT = "Usage: [--help] | [--weather <path to csv>] | [--football <path to csv>]";
 
 	private PrintStream stdout;
 	private PrintStream stderr;
 
 	static final List<String> EXPECTED_WEATHER_DATA_HEADER_COLUMNS = Arrays.asList("Day", "MxT", "MnT", "AvT", "AvDP",
 			"1HrP TPcpn", "PDir", "AvSp", "Dir", "MxS", "SkyC", "MxR", "Mn", "R AvSLP");
-	
-	Comparator<WeatherReading> bySpread = (WeatherReading item1, WeatherReading item2) -> Float.compare(item1.spread(), item2.spread());
+
+	static final List<String> EXPECTED_FOOTBALL_DATA_HEADER = Arrays.asList("Team", "Games", "Wins", "Losses", "Draws",
+			"Goals", "Goals Allowed", "Points");
+
+	Comparator<WeatherReading> bySpread = (WeatherReading item1, WeatherReading item2) -> Float.compare(item1.spread(),
+			item2.spread());
+
+	Comparator<FootballReading> byAbsoluteSpread = (FootballReading item1, FootballReading item2) -> Integer
+			.compare(item1.absoluteSpread(), item2.absoluteSpread());
 
 	/**
 	 * This is the main entry method of your program.
@@ -65,58 +72,102 @@ public final class App {
 	int run(String... args) {
 		if (args.length == 0) {
 			return printUsageAndExitWithFailure();
-		} else if (args.length == 1) {
-			if (args[0].equals("--help")) {
-				return printHelp();
-			} else {
-				return printUsageAndExitWithFailure();
-			}
-		} else if (args.length == 2) {
-			if (args[0].equals("--weather")) {
-				Path path = Paths.get(args[1]);
-
-				if (!Files.exists(path)) {
-					this.stderr.println(String.format("File not found: %s", path));
-					return App.FAILURE;
-				}
-
-				try {
-					CSVParser csvParser = CSVParser.parse(path, Charsets.UTF_8, CSVFormat.DEFAULT.withHeader());
-					List<String> headerNames = csvParser.getHeaderNames();
-					if (!headerNames.containsAll(App.EXPECTED_WEATHER_DATA_HEADER_COLUMNS)) {
-						stderr.println(String.format("Wrong header found: '%s' - Expected: '%s'",
-								String.join(",", headerNames),
-								String.join(",", App.EXPECTED_WEATHER_DATA_HEADER_COLUMNS)));
-						return App.FAILURE;
-					}
-					List<CSVRecord> records = csvParser.getRecords();
-					ArrayList<WeatherReading> weatherReadings = new ArrayList<>();
-					int i = 1;
-					for (CSVRecord record : records) {
-						try {
-							WeatherReading weatherReading = WeatherReading.fromStrings(record.get("Day"),
-									record.get("MxT"), record.get("MnT"));
-							weatherReadings.add(weatherReading);
-						} catch (NumberFormatException ex) {
-							this.stderr.println(String.format("Warn: Invalid temperature data in line %d'", i));
-						}
-						++i;
-					}
-					MinimaFinder<WeatherReading> minimumSpreadFinder = new MinimaFinder<>();
-					List<WeatherReading> minimas = minimumSpreadFinder.findMinima(bySpread, weatherReadings);
-					minimas.forEach(item -> stdout.println(item.name()));
-				} catch (IOException e) {
-					e.printStackTrace(stderr);
-					return App.FAILURE;
-				}
-
-				return App.SUCCESS;
-			} else {
-				return printUsageAndExitWithFailure();
-			}
 		} else {
-			return printUsageAndExitWithFailure();
+			String option = args[0];
+			if (args.length == 1) {
+				if (option.equals("--help")) {
+					return printHelp();
+				} else {
+					return printUsageAndExitWithFailure();
+				}
+			} else if (args.length == 2) {
+				if (option.equals("--weather")) {
+					return processWeatherCSV(Paths.get(args[1]));
+				} else if (option.equals("--football")) {
+					return processFootballCSV(Paths.get(args[1]));
+				} else {
+					return printUsageAndExitWithFailure();
+				}
+			} else {
+				return printUsageAndExitWithFailure();
+			}
 		}
+	}
+
+	int processFootballCSV(Path path) {
+		if (!Files.exists(path)) {
+			this.stderr.println(String.format("File not found: %s", path));
+			return App.FAILURE;
+		}
+
+		try {
+			CSVParser csvParser = CSVParser.parse(path, Charsets.UTF_8, CSVFormat.DEFAULT.withHeader());
+			List<String> headerNames = csvParser.getHeaderNames();
+			if (!headerNames.containsAll(App.EXPECTED_FOOTBALL_DATA_HEADER)) {
+				stderr.println(String.format("Wrong header found: '%s' - Expected: '%s'", String.join(",", headerNames),
+						String.join(",", App.EXPECTED_FOOTBALL_DATA_HEADER)));
+				return App.FAILURE;
+			}
+			List<CSVRecord> records = csvParser.getRecords();
+			ArrayList<FootballReading> footballReadings = new ArrayList<>();
+			int i = 1;
+			for (CSVRecord record : records) {
+				try {
+					FootballReading footballReading = FootballReading.fromStrings(record.get("Team"),
+							record.get("Goals"), record.get("Goals Allowed"));
+					footballReadings.add(footballReading);
+				} catch (NumberFormatException ex) {
+					this.stderr.println(String.format("Warn: Invalid data in line %d'", i));
+				}
+				++i;
+			}
+			MinimaFinder<FootballReading> minimumSpreadFinder = new MinimaFinder<>();
+			List<FootballReading> minimas = minimumSpreadFinder.findMinima(byAbsoluteSpread, footballReadings);
+			minimas.forEach(item -> stdout.println(item.team()));
+		} catch (IOException e) {
+			e.printStackTrace(stderr);
+			return App.FAILURE;
+		}
+
+		return App.SUCCESS;
+	}
+
+	int processWeatherCSV(Path path) {
+		if (!Files.exists(path)) {
+			this.stderr.println(String.format("File not found: %s", path));
+			return App.FAILURE;
+		}
+
+		try {
+			CSVParser csvParser = CSVParser.parse(path, Charsets.UTF_8, CSVFormat.DEFAULT.withHeader());
+			List<String> headerNames = csvParser.getHeaderNames();
+			if (!headerNames.containsAll(App.EXPECTED_WEATHER_DATA_HEADER_COLUMNS)) {
+				stderr.println(String.format("Wrong header found: '%s' - Expected: '%s'", String.join(",", headerNames),
+						String.join(",", App.EXPECTED_WEATHER_DATA_HEADER_COLUMNS)));
+				return App.FAILURE;
+			}
+			List<CSVRecord> records = csvParser.getRecords();
+			ArrayList<WeatherReading> weatherReadings = new ArrayList<>();
+			int i = 1;
+			for (CSVRecord record : records) {
+				try {
+					WeatherReading weatherReading = WeatherReading.fromStrings(record.get("Day"), record.get("MxT"),
+							record.get("MnT"));
+					weatherReadings.add(weatherReading);
+				} catch (NumberFormatException ex) {
+					this.stderr.println(String.format("Warn: Invalid data in line %d'", i));
+				}
+				++i;
+			}
+			MinimaFinder<WeatherReading> minimumSpreadFinder = new MinimaFinder<>();
+			List<WeatherReading> minimas = minimumSpreadFinder.findMinima(bySpread, weatherReadings);
+			minimas.forEach(item -> stdout.println(item.name()));
+		} catch (IOException e) {
+			e.printStackTrace(stderr);
+			return App.FAILURE;
+		}
+
+		return App.SUCCESS;
 	}
 
 	int printHelp() {
