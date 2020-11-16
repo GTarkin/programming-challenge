@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,6 +41,8 @@ public final class App {
 
 	static final List<String> EXPECTED_WEATHER_DATA_HEADER_COLUMNS = Arrays.asList("Day", "MxT", "MnT", "AvT", "AvDP",
 			"1HrP TPcpn", "PDir", "AvSp", "Dir", "MxS", "SkyC", "MxR", "Mn", "R AvSLP");
+	
+	Comparator<WeatherReading> bySpread = (WeatherReading item1, WeatherReading item2) -> Float.compare(item1.spread(), item2.spread());
 
 	/**
 	 * This is the main entry method of your program.
@@ -99,8 +102,8 @@ public final class App {
 						}
 						++i;
 					}
-					MinimumSpreadFinder<WeatherReading> minimumSpreadFinder = new MinimumSpreadFinder();
-					List<WeatherReading> minimas = minimumSpreadFinder.findMinima(weatherReadings);
+					MinimaFinder<WeatherReading> minimumSpreadFinder = new MinimaFinder<>();
+					List<WeatherReading> minimas = minimumSpreadFinder.findMinima(bySpread, weatherReadings);
 					minimas.forEach(item -> stdout.println(item.name()));
 				} catch (IOException e) {
 					e.printStackTrace(stderr);
